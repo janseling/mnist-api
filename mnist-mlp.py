@@ -1,12 +1,13 @@
 # 加载库
-import flask
-import tensorflow as tf
-import keras
 from keras.models import load_model
 from PIL import Image
+import tensorflow as tf
+import keras
+import flask
+import os
 
 # 实例化 flask 
-UPLOAD_FOLDER = __dir__ + 'uploads'
+UPLOAD_FOLDER = os.path.dirname(os.path.abspath(__file__)) + '/uploads'
 print('upload floder : ' + UPLOAD_FOLDER)
 app = flask.Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -28,19 +29,24 @@ model = load_model('model.mlp.h5', custom_objects={'auc': auc})
 def predict():
     data = {"success": False}
 
-    params = flask.request.json
-    if (params == None):
-        params = flask.request.args
+    img = request.files['img']
+    if img:
+        path = os.path.join(UPLOAD_FOLDER + '/', img.filename)
+        img.save(path)
+        image = Image.open(path)
+        image = image.convert('L')
+        image = image.resize((28, 28))
+        image = np.array(image).reshape(784)
+        images.astype('float32')
+        images /= 255
 
-    # 若发现参数，则返回预测值
-    if (params != None):
-        x=pd.DataFrame.from_dict(params, orient='index').transpose()
+      # 若发现参数，则返回预测值
         with graph.as_default():
-            data["prediction"] = model.predict(x)
+            data["prediction"] = model.predict(image)
             data["success"] = True
 
     # 返回Jason格式的响应
     return flask.jsonify(data)    
 
 # 启动Flask应用程序，允许远程连接
-app.run(host='0.0.0.0', port='10001')
+app.run(host='0.0.0.0', port=10001)
