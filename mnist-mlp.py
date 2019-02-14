@@ -2,15 +2,16 @@
 from keras.models import load_model
 from PIL import Image
 import tensorflow as tf
+import numpy as np
+import hashlib
+import base64
 import keras
 import flask
+import time
 import os
 
 # 实例化 flask 
-UPLOAD_FOLDER = os.path.dirname(os.path.abspath(__file__)) + '/uploads'
-print('upload floder : ' + UPLOAD_FOLDER)
 app = flask.Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # 我们需要重新定义我们的度量函数，
 # 从而在加载模型时使用它
@@ -29,20 +30,25 @@ model = load_model('model.mlp.h5', custom_objects={'auc': auc})
 def predict():
     data = {"success": False}
 
-    img = request.files['img']
-    if img:
-        path = os.path.join(UPLOAD_FOLDER + '/', img.filename)
-        img.save(path)
-        image = Image.open(path)
+    params = flask.request.json
+    if (params == None):
+        params = flask.request.args
+
+    # 若发现参数，则返回预测值
+    if (params != None):
+        image = base64.b64decode(params.get('img'))
+        filename = 'uploads/' + time.strftime("%Y%m%d%H%M%S", time.localtime()) + hashlib.md5(image).hexdigest() + '.jpg'
+        with open(filename, 'wb') as f:
+            f.write(image)
+
+        image = Image.open(filename)
         image = image.convert('L')
         image = image.resize((28, 28))
-        image = np.array(image).reshape(784)
-        images.astype('float32')
-        images /= 255
+        image = np.array(image).astype(np.float32).reshape(784) / 255
 
-      # 若发现参数，则返回预测值
+        print('image shape ', image.shape)
         with graph.as_default():
-            data["prediction"] = model.predict(image)
+            data["prediction"] = model.predict(np.array([image])).tolist()
             data["success"] = True
 
     # 返回Jason格式的响应
