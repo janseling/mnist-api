@@ -48,7 +48,7 @@ def predict():
 
         print('image shape ', image.shape)
         with graph.as_default():
-            data["prediction"] = model.predict(np.array([image])).tolist()
+            data["prediction"] = model.predict(np.array([image]))[0].tolist()
             data["success"] = True
 
     # 返回Jason格式的响应
